@@ -1,7 +1,5 @@
 ## README
 
 
-## Author
-
-### Gabe Weintraub
+*Author: Gabe Weintraub*
 
