@@ -61,7 +61,7 @@ void setup() {
 
 //more speaker + heaphone set up
 pinMode(jackPin1, INPUT);
-//pinMode(jackPin2, INPUT);
+// pinMode(jackPin2, INPUT);
 pinMode(speakerPin, OUTPUT);
 
 
