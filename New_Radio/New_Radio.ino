@@ -11,26 +11,30 @@
 	Adafruit VS1053 breakout board w/o amp
 
 ****************************************************/
-
-//Pins
-#define VS1053_DCS 7
-#define VS1053_CS 6
-#define CARDCS 4
-#define VS1053_DREQ 3
-#define VS1053_RESET 9
-
+//Libraries
 #include <SPI.h>
 #include <Adafruit_VS1053.h>
 #include <SD.h>
 #include <Wire.h>
 
-Adafruit_VS1053_FilePlayer musicPlayer = 
-  // Create shield object
-  Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
+//Pins
+#define SHIELD_DCS 7
+#define SHIELD_CS 6
+#define CARDCS 4
+// DREQ should be an Int pin, see http://arduino.cc/en/Reference/attachInterrupt
+#define DREQ 3
+#define SHIELD_RESET 9
+
+// 0x4B is the default i2c address of MAX9744 amp
+#define MAX9744_I2CADDR 0x4B
+
+//Create shield object
+Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
 //Volume potentiometer
   int volPotPin = 1; //Volume input pin
-  int volVal = 0; //Volume range variable
+//  int volVal = 0; //Volume range variable
+  int8_t volVal = 0;
 
 //Station potentiometer
   int stationPotPin = 2; //Station selection pin
@@ -43,11 +47,13 @@ Adafruit_VS1053_FilePlayer musicPlayer =
   int jackPin1 = 5;
   int jackPin2 = 2; //Need to change this since it references GPIO pins
   int speakerPin = 2;
-  pinMode(jackPin1, INPUT);
-  pinMode(jackPin2, INPUT);
-  pinMode(speakerPin, OUTPUT);
 
 void setup() {
+	//Init pins for speakers and headphones
+	pinMode(jackPin1, INPUT);
+	pinMode(jackPin2, INPUT);
+	pinMode(speakerPin, OUTPUT);
+
 	Serial.begin(9600);
 
 	//Initialize musicPlayer board
@@ -71,7 +77,9 @@ void setup() {
 	printDirectory(SD.open("/"), 0);
 	// Set volume for left, right channels. 
 	// Lower numbers == louder volume!
-	musicPlayer.setVolume(50,50);
+	volVal = map(analogRead(volPotPin), 0, 1023, 0, 63);
+	setVolume(volVal);
+	//musicPlayer.setVolume(50,50);
 
 	// Timer interrupts are not suggested, better to use DREQ interrupt!
 	//musicPlayer.useInterrupt(VS1053_FILEPLAYER_TIMER0_INT); // timer int
@@ -108,21 +116,19 @@ void loop() {
 	//Check volume
 	//NEED TO MODIFY VOLUME CODE FOR DIGITAL CONTROL VIA MAX9744 I2C
 	//CONVERT P
-	int volValue = analogRead(volPotPin);
-	/*************************
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	THIS IS SO I DON'T FORGET TO FIX THE VOLUME CODE
-	***************************/
+	int volValueRaw = analogRead(volPotPin);
+	int computedVol = map(volValueRaw, 0, 1023, 0, 63);
+	volVal = computedVol;
+	setVolume(volVal);
+	// Vol pot range is 0-1023
+	// MAX9744 can be written from 0-64
 
-	//Check station from pin 1
+	//Check station from pin 0
 	int stationValue = analogRead(stationPotPin);
 	Serial.println("stationValue = " + stationValue);
 
-	int station = getStationIDforPotValue(stationValue); //stationValue/100);
+	int station = getStationIDforPotValue(stationValue); 
+	//stationValue/100);
 	Serial.println("Station = " + station);
 
 	currentStation = station;
@@ -139,7 +145,6 @@ void loop() {
 		lastStation = currentStation;
 		delay(100);
 	}
-	musicPlayer.setVolume(volume,volume); //THIS MAY NEED SOME FIXING
 }
 //END LOOP
 
@@ -215,4 +220,19 @@ void printDirectory(File dir, int numTabs) {
 	    // }
 	    entry.close();
 	}
+}
+
+boolean setVolume(int8_t v) {
+	// cant be higher than 63 or lower than 0
+	if (v > 63) v = 63;
+	if (v < 0) v = 0;
+	
+	Serial.println("Setting volume to " + v);
+	//Serial.println(v);
+	Wire.beginTransmission(MAX9744_I2CADDR);
+	Wire.write(v);
+	if (Wire.endTransmission() == 0) 
+	  return true;
+	else
+	  return false;
 }
