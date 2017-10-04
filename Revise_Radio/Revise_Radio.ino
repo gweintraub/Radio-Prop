@@ -1,3 +1,4 @@
+
 /*************************************************** 
   This Arduino class is made for a custom radio sound box
   Made by Gabe Weintraub for The Factory NYC, based on the original design by Rachel Ciavarella.
@@ -46,8 +47,6 @@
 // 0x4B is the default i2c address of MAX9744 amp
 #define MAX9744_I2CADDR 0x4B
 
-#define NUMFOLDERS  5 //number of folders on SD card. Hardcoded, please don't change this. Corresponds with 5 boroughs of NYC.
-
 //Create shield object
 Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET, SHIELD_CS, SHIELD_DCS, DREQ, CARDCS);
 
@@ -68,8 +67,7 @@ Adafruit_VS1053_FilePlayer musicPlayer = Adafruit_VS1053_FilePlayer(SHIELD_RESET
   int jackPin2 = 2; //Need to change this since it references GPIO pins
   int speakerPin = 2;
 
-  int folders[NUMFOLDERS];
-
+  int folders[] = {0,0,0,0,0};
   File root;
 
 
@@ -101,17 +99,17 @@ void setup() {
   Serial.println("Initialization complete");
   //End initialization
 
-  root = SD.open("/listen/");
   //Print list of files
-  printDirectory(root, 0);
-  
+  //printDirectory(SD.open("/"), 0);
+  // Set volume for left, right channels. 
+  // Lower numbers == louder volume!
   volVal = map(analogRead(volPotPin), 0, 1023, 0, 63);
+  // Serial.println("Start volume:");
+  // Serial.println(volVal);
   setVolume(volVal);
   //musicPlayer.setVolume(50,50);
 
   stationVal = analogRead(stationPotPin);
-  Serial.println("StationVal:");
-  Serial.println(stationVal);
   int station = getStationIDforPotValue(stationVal); 
   currentStation = station;
 
@@ -126,6 +124,34 @@ void setup() {
   // MusicPlayer GPIO pin as input for second jack
   //musicPlayer.GPIO_digitalWrite(1, HIGH);
   musicPlayer.GPIO_pinMode(jackPin2, INPUT);
+  
+  root = SD.open("/listen/MANH/");
+  countFiles(root, 0);
+  Serial.print("MANH ");
+  Serial.println(folders[0]);
+  root.close();
+  root = SD.open("/listen/QUEENS/");
+  countFiles(root, 1);
+  Serial.print("QUEENS ");
+   Serial.println(folders[1]);
+  root.close();
+  root = SD.open("/listen/BKLYN/");
+  countFiles(root, 2);
+  Serial.print("BKLYN ");
+   Serial.println(folders[2]);
+  root.close();
+  root = SD.open("/listen/BRONX/");
+  countFiles(root, 3);
+  Serial.print("BRONX ");
+   Serial.println(folders[3]);
+  root.close();
+  root = SD.open("/listen/STATEN/");
+  countFiles(root, 4);
+  Serial.print("STATEN ");
+   Serial.println(folders[4]);
+  root.close();
+  Serial.println("Files counted");
+  
   Serial.println("End setup");
 }
 
@@ -173,7 +199,8 @@ void loop() {
     if(station >= 6) {
       playRandomStation();          
     } else if (station != 0) {
-      playFile(station);
+      int track = random(1, folders[station-1]);
+      playFile(station, track);
     } 
     lastStation = currentStation;
     delay(100);
@@ -191,102 +218,58 @@ int getStationIDforPotValue(int v) {
   return computedChannel;
 } 
 
-void playFile(int id) {
-  String path = String(root);
-  if(id == 1){
-      Serial.println("Playing channel 1");
-      int i = 0;
-      while (i < folders[id]){
-        path.concat("/00/" + i + ".mp3");
-        musicPlayer.startPlayingFile(path);
-        i++;
-      }
+void playFile(int channelID, int trackID) {
+  char copy[25];
+  if (channelID == 1) {
+    Serial.println("Manhattan");
+    String trackPath = "/listen/MANH/";
+    trackPath += trackID;
+    trackPath += ".mp3";
+    trackPath.toCharArray(copy, 25);
+    musicPlayer.startPlayingFile(copy);
+  } 
+  else if (channelID == 2) {
+    Serial.println("Queens");
+    String trackPath = "/listen/QUEENS/";
+    trackPath += trackID;
+    trackPath += ".mp3";
+    trackPath.toCharArray(copy, 25);
+    musicPlayer.startPlayingFile(copy);
   }
-  else if (id == 2) {
-    Serial.println("Playing channel 2");
-    int i = 0;
-    while (i < folders[id]){
-      path.concat("/01/" + i + ".mp3");
-      musicPlayer.startPlayingFile(path);
-      i++;
-    }
+  else if (channelID == 3) {
+    Serial.println("Brooklyn");
+    String trackPath = "/listen/BKLYN/";
+    trackPath += trackID;
+    trackPath += ".mp3";
+    trackPath.toCharArray(copy, 25);
+    musicPlayer.startPlayingFile(copy);
   }
-  else if (id == 3) {
-    Serial.println("Playing channel 3");
-    int i = 0;
-    while (i < folders[id]){
-      path.concat("/02/" + i + ".mp3");
-      musicPlayer.startPlayingFile(path);
-      i++;
-    }
+  else if (channelID == 4) {
+    Serial.println("Bronx");
+    String trackPath = "/listen/BRONX/";
+    trackPath += trackID;
+    trackPath += ".mp3";
+    trackPath.toCharArray(copy, 25);
+    musicPlayer.startPlayingFile(copy);
   }
-  else if (id == 4) {
-    Serial.println("Playing channel 4");
-    int i = 0;
-    while (i < folders[id]){
-      path.concat("/03/" + i + ".mp3");
-      musicPlayer.startPlayingFile(path);
-      i++;
-    }
-  }
-  else if (id == 5) {
-    Serial.println("Playing channel 5");
-   int i = 0;
-   while (i < folders[id]){
-    path.concat("/04/" + i + ".mp3")
-      musicPlayer.startPlayingFile(path);
-     i++;
-   }
+  else if (channelID == 5) {
+    Serial.println("Staten");
+    String trackPath = "/listen/STATEN/";
+    trackPath += trackID;
+    trackPath += ".mp3";
+    trackPath.toCharArray(copy, 25);
+    musicPlayer.startPlayingFile(copy);
   } 
 }
 
 void playRandomStation() {
-  int randomStation = random(0, 4);
+  int randomStation = random(1, 5);
   Serial.println("Random station: " + randomStation);
-  playFile(randomStation);
+  int track = random(1, folders[randomStation-1]);
+  playFile(randomStation, track);
 }
 
-// File listing. Print list of files on SD card to serial. 
-// Only called if SD card confirmed present.
-void printDirectory(File dir, int numTabs) {
 
-  // while(true){
-  //     File entry = dir.openNextFile(); // Find first file on SD
-  //     if(! entry){  // If no more files
-  //         Serial.println("**nomorefiles**");
-  //         break;
-  //     }
-  //     for(uint8_t i=0; i<numTabs; i++){ // Why did rachel print tabs here?
-  //         Serial.print('\t'); 
-  //     }
-  //     Serial.println(entry.name());
-  //     // if(entry.isDirectory()) {
-  //     //  Serial.println("/");
-  //     //  printDirectory(entry, numTabs+1);   
-  //     // } else {
-  //     //  //Files have sizes, directories do not
-  //     //  Serial.print("\t\t" );
-  //     //  Serial.println(entry.size(), DEC);
-  //     // }
-  //     entry.close();
-  // }
-    for(int i=0; i<NUMFOLDERS; i++){
-      while (true) {
-        File entry =  dir.openNextFile();
-        if (! entry) {
-          // no more files
-          break;
-        }
-        if (entry.isDirectory()) {
-          //Serial.println(entry.name());
-          countFiles(entry, i);
-          i++;
-        }
-        entry.close();
-      }
-  }
-
-}
 
 boolean setVolume(int8_t v) {
   //Serial.println("attempt volume set " + v);
@@ -306,16 +289,24 @@ boolean setVolume(int8_t v) {
   }
 }
 
-void countFiles(File dir, int index) {
+void countFiles(File subDir, int index) {
+  char copy[10];
   int numFiles = 0;
   while(true){
-      File entry = dir.openNextFile();
+      File entry = subDir.openNextFile();
       if(! entry){
         break;
       }
-      numFiles++;
+      String temp = entry.name();
+      //Serial.println(temp);
+      temp.toCharArray(copy, 10);
+      if(copy[0] != '_'){
+        numFiles++;
+      } else {
+      }
       entry.close();
   } 
+
   folders[index] = numFiles;
-  Serial.println(folders[index]);
+
 }

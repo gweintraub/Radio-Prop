@@ -213,12 +213,12 @@ int getStationIDforPotValue(int v) {
 
 void playFile(int id) {
 	if (id == 1) {
-		root = SD.open("/listen/01");
-		MANH = root.openNextFile();
+		//root = SD.open("/listen/01");
+		//MANH = root.openNextFile();
 	  Serial.println("Playing Manhattan");
-	  musicPlayer.startPlayingFile(MANH.name());
-	  root.close();
-	  MANH.close();
+	  musicPlayer.startPlayingFile("/listen/01/1.mp3");
+	  //root.close();
+	  //MANH.close();
 	} 
 	else if (id == 2) {
 		root = SD.open("/listen/02/");
