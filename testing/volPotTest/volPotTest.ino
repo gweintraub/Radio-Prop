@@ -10,9 +10,8 @@ void loop()
 {
 	int volVal = analogRead(volPotPin);
 	Serial.println(volVal);
- if(volVal != 0) {
-    int computedVol = map(volVal, 0, 1023, 1, 10);
-    Serial.println(computedVol);
- } else Serial.println("0");
-	delay(100);
+ 
+ Serial.println(map(volVal, 0, 1023, 255, 0));
+ 
+	delay(500);
 }
